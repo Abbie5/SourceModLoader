@@ -56,6 +56,7 @@ public class SMLPlugin implements QuiltLoaderPlugin {
 				File modFile = modBuildDir.toPath().resolve(outFile).toFile();
 				if (!modFile.exists()) {
 					LOGGER.error("build didn't produce expected mod file " + outFile);
+					continue;
 				}
 
 				Files.copy(modFile.toPath(), modsDir.toPath().resolve(modFile.getName()));
