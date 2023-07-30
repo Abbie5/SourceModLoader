@@ -1,12 +1,8 @@
 package cc.abbie.sourcemodloader.plugin;
 
-import org.apache.commons.io.filefilter.NameFileFilter;
-import org.apache.commons.io.filefilter.NotFileFilter;
-import org.eclipse.jgit.api.CloneCommand;
+import org.apache.commons.lang3.SystemUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.URIish;
 import org.quiltmc.loader.api.LoaderValue;
 import org.quiltmc.loader.api.plugin.QuiltLoaderPlugin;
@@ -15,12 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
+import java.util.Map;
 
 public class SMLPlugin implements QuiltLoaderPlugin {
     private static final Logger LOGGER = LoggerFactory.getLogger(SMLPlugin.class);
@@ -32,6 +26,14 @@ public class SMLPlugin implements QuiltLoaderPlugin {
 
     @Override
     public void load(QuiltPluginContext context, Map<String, LoaderValue> previousData) {
+        String gradleCmd;
+        if (SystemUtils.IS_OS_UNIX) gradleCmd = "./gradlew";
+        else if (SystemUtils.IS_OS_WINDOWS) gradleCmd = "gradlew.bat";
+        else {
+            LOGGER.error("unsupported os! " + SystemUtils.OS_NAME);
+            return;
+        }
+
         try {
             File modsDir = new File("smlmods");
             if (!modsDir.exists()) modsDir.mkdir();
@@ -43,7 +45,7 @@ public class SMLPlugin implements QuiltLoaderPlugin {
                 String outFile = entry.getValue();
 
                 String[] parts = outFile.split("/");
-                File modOutFile = modsDir.toPath().resolve(parts[parts.length-1]).toFile();
+                File modOutFile = modsDir.toPath().resolve(parts[parts.length - 1]).toFile();
                 // TODO do more robust checking, maybe check hashes?
                 if (modOutFile.exists()) continue;
 
@@ -56,7 +58,7 @@ public class SMLPlugin implements QuiltLoaderPlugin {
                             .call();
                 }
 
-                ProcessBuilder buildProcessBuilder = new ProcessBuilder("./gradlew", "build")
+                ProcessBuilder buildProcessBuilder = new ProcessBuilder(gradleCmd, "build")
                         .directory(repoDir)
                         .inheritIO();
                 Map<String, String> env = buildProcessBuilder.environment();
