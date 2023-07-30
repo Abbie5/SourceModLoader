@@ -1,10 +1,10 @@
 package cc.abbie.sourcemodloader.plugin;
 
-import org.apache.commons.lang3.SystemUtils;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.transport.URIish;
+import cc.abbie.sourcemodloader.config.SMLConfig;
+import cc.abbie.sourcemodloader.source.ModSource;
+import com.google.gson.Gson;
 import org.quiltmc.loader.api.LoaderValue;
+import org.quiltmc.loader.api.QuiltLoader;
 import org.quiltmc.loader.api.plugin.QuiltLoaderPlugin;
 import org.quiltmc.loader.api.plugin.QuiltPluginContext;
 import org.slf4j.Logger;
@@ -12,89 +12,60 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
+import java.io.Reader;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 public class SMLPlugin implements QuiltLoaderPlugin {
     private static final Logger LOGGER = LoggerFactory.getLogger(SMLPlugin.class);
 
-    // TODO replace by loading from config file
-    private static final Map<String, String> modsToBuild = Map.of(
-            "https://github.com/Abbie5/global-options.git", "build/libs/global_options-1.0.jar"
-    );
-
     @Override
     public void load(QuiltPluginContext context, Map<String, LoaderValue> previousData) {
-        String gradleCmd;
-        if (SystemUtils.IS_OS_UNIX) gradleCmd = "./gradlew";
-        else if (SystemUtils.IS_OS_WINDOWS) gradleCmd = "gradlew.bat";
-        else {
-            LOGGER.error("unsupported os! " + SystemUtils.OS_NAME);
-            return;
-        }
-
         try {
-            File modsDir = new File("smlmods");
-            if (!modsDir.exists()) modsDir.mkdir();
-            File reposDir = new File("smlsources");
-            if (!reposDir.exists()) reposDir.mkdir();
+			File modsDir = new File("smlmods");
+			File reposDir = new File("smlsources");
+			File configFile = QuiltLoader.getConfigDir().resolve("sourcemodloader").resolve("mods.json").toFile();
 
-            for (Map.Entry<String, String> entry : modsToBuild.entrySet()) {
-                String uri = entry.getKey();
-                String outFile = entry.getValue();
+			modsDir.mkdirs();
+			reposDir.mkdirs();
+			configFile.getParentFile().mkdirs();
+			configFile.createNewFile();
 
-                String[] parts = outFile.split("/");
-                File modOutFile = modsDir.toPath().resolve(parts[parts.length - 1]).toFile();
-                // TODO do more robust checking, maybe check hashes?
-                if (modOutFile.exists()) continue;
+			Reader reader = Files.newBufferedReader(configFile.toPath());
+			SMLConfig config = new Gson().fromJson(reader, SMLConfig.class);
 
-                File repoDir = reposDir.toPath().resolve(new URIish(uri).getHumanishName()).toFile();
+			if (config.sources.isEmpty()) return; // no mods to build :shrug:
 
-                if (!repoDir.exists()) {
-                    Git.cloneRepository()
-                            .setURI(uri)
-                            .setDirectory(repoDir)
-                            .call();
-                }
+			Path buildDir = QuiltLoader.getCacheDir().resolve("sourcemodloader").resolve("build");
 
-                ProcessBuilder buildProcessBuilder = new ProcessBuilder(gradleCmd, "build")
-                        .directory(repoDir)
-                        .inheritIO();
-                Map<String, String> env = buildProcessBuilder.environment();
-                String envJavaHome = System.getenv("JAVA_HOME");
-                // TODO get the JAVA_HOME properly in the dev env
-                String javaHome = envJavaHome != null ? envJavaHome : "/app/extra/IDEA-U/jbr";
-                env.put("JAVA_HOME", javaHome);
+			for (ModSource source : config.sources) {
+				String outFile = source.artifact;
 
-                Process buildProcess = buildProcessBuilder.start();
-                int exitCode = buildProcess.waitFor();
-                if (exitCode != 0) {
-                    LOGGER.error("build failed with exit code " + exitCode);
-                    return;
-                }
+				String[] parts = outFile.split("/");
+				File modOutFile = modsDir.toPath().resolve(parts[parts.length - 1]).toFile();
+				// TODO do more robust checking, maybe check hashes?
+				if (modOutFile.exists()) continue;
 
-                File modFile = repoDir.toPath().resolve(outFile).toFile();
-                if (!modFile.exists()) {
-                    LOGGER.error("build didn't produce expected mod file " + outFile);
-                }
+				File modBuildDir = buildDir.resolve(source.name).toFile();
 
-                Files.copy(modFile.toPath(), modsDir.toPath().resolve(modFile.getName()));
-            }
+				source.downloadSource(modBuildDir);
 
-            context.addFolderToScan(modsDir.toPath());
+				source.buildSystem.build(modBuildDir);
 
-        } catch (GitAPIException e) {
-            LOGGER.error("couldn't clone repo");
-            e.printStackTrace();
+				File modFile = modBuildDir.toPath().resolve(outFile).toFile();
+				if (!modFile.exists()) {
+					LOGGER.error("build didn't produce expected mod file " + outFile);
+				}
+
+				Files.copy(modFile.toPath(), modsDir.toPath().resolve(modFile.getName()));
+			}
+
+			context.addFolderToScan(modsDir.toPath());
         } catch (IOException e) {
-            LOGGER.error("couldn't build repo");
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
-            LOGGER.error("not a valid uri! " + e.getMessage());
-        } catch (InterruptedException e) {
-            LOGGER.error("build process got interrupted: " + e.getMessage());
-        }
+			LOGGER.error("couldn't build repo");
+			e.printStackTrace();
+		}
     }
 
     @Override
