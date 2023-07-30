@@ -28,7 +28,6 @@
 			}
 		]
 	},
-	"mixin": "sourcemodloader.mixins.json",
 	"experimental_quilt_loader_plugin": {
 		"class": "cc.abbie.sourcemodloader.plugin.SMLPlugin",
 		"packages": [
