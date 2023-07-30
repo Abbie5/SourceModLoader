@@ -21,6 +21,11 @@ public final class Gradle implements BuildSystem {
 
 	@Override
 	public void build(File workingDir) throws IOException {
+		if (SystemUtils.IS_OS_UNIX) {
+			// make sure gradlew is executable
+			workingDir.toPath().resolve("gradlew").toFile().setExecutable(true);
+		}
+
 		ProcessBuilder buildProcessBuilder = new ProcessBuilder(gradleCmd, "build")
 			.directory(workingDir)
 			.inheritIO();
