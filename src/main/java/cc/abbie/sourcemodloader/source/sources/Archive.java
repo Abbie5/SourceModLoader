@@ -1,4 +1,4 @@
-package cc.abbie.sourcemodloader.source;
+package cc.abbie.sourcemodloader.source.sources;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -16,26 +16,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public final class ArchiveModSource extends ModSource {
+public final class Archive extends ModSource {
 	public String sha256;
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(ArchiveModSource.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Archive.class);
 
 	@Override
-	public void downloadSource(File outDir) throws IOException {
+	public File downloadSource(File outDir) throws IOException {
 		// download archive to global cache
 		Path cacheDir = QuiltLoader.getCacheDir();
 
-		File dlFile = cacheDir.resolve("sourcemodloader").resolve("download_cache").resolve(name).resolve(url.getPath()).toFile();
+		String urlPath = url.getPath();
+		String[] urlPathParts = urlPath.split("/");
+		String urlFilename = urlPathParts[urlPathParts.length - 1];
+
+		File dlFile = cacheDir
+			.resolve("sourcemodloader")
+			.resolve("download_cache")
+			.resolve(name)
+			.resolve(urlFilename)
+			.toFile();
 
 		if (!dlFile.exists()) {
 			ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+			dlFile.getParentFile().mkdirs();
+			dlFile.createNewFile();
 			FileOutputStream fos = new FileOutputStream(dlFile);
 			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
 		}
@@ -53,6 +63,11 @@ public final class ArchiveModSource extends ModSource {
 
 		ArchiveInputStream ais = getArchiveInputStream(dlFile, fis);
 		extractArchive(ais, outDir);
+
+		File[] outDirFiles = outDir.listFiles();
+		if (outDirFiles == null) throw new IOException("somehow " + outDir + " files is null");
+		if (outDirFiles.length == 1) return outDirFiles[0];
+		return outDir;
 	}
 
 	private static void extractArchive(ArchiveInputStream ais, File dest) throws IOException {

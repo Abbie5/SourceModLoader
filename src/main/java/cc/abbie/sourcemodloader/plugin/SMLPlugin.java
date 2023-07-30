@@ -1,8 +1,11 @@
 package cc.abbie.sourcemodloader.plugin;
 
 import cc.abbie.sourcemodloader.config.SMLConfig;
-import cc.abbie.sourcemodloader.source.ModSource;
+import cc.abbie.sourcemodloader.config.SealedTypeAdaptorFactory;
+import cc.abbie.sourcemodloader.source.buildsystems.BuildSystem;
+import cc.abbie.sourcemodloader.source.sources.ModSource;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.quiltmc.loader.api.LoaderValue;
 import org.quiltmc.loader.api.QuiltLoader;
 import org.quiltmc.loader.api.plugin.QuiltLoaderPlugin;
@@ -33,7 +36,12 @@ public class SMLPlugin implements QuiltLoaderPlugin {
 			configFile.createNewFile();
 
 			Reader reader = Files.newBufferedReader(configFile.toPath());
-			SMLConfig config = new Gson().fromJson(reader, SMLConfig.class);
+
+			GsonBuilder gsonBuilder = new GsonBuilder();
+			gsonBuilder.registerTypeAdapterFactory(new SealedTypeAdaptorFactory<>(ModSource.class, "type"));
+			gsonBuilder.registerTypeAdapterFactory(new SealedTypeAdaptorFactory<>(BuildSystem.class, "type"));
+			Gson gson = gsonBuilder.create();
+			SMLConfig config = gson.fromJson(reader, SMLConfig.class);
 
 			if (config.sources.isEmpty()) return; // no mods to build :shrug:
 
@@ -49,11 +57,11 @@ public class SMLPlugin implements QuiltLoaderPlugin {
 
 				File modBuildDir = buildDir.resolve(source.name).toFile();
 
-				source.downloadSource(modBuildDir);
+				File sourceDir = source.downloadSource(modBuildDir);
 
-				source.buildSystem.build(modBuildDir);
+				source.buildsystem.build(sourceDir);
 
-				File modFile = modBuildDir.toPath().resolve(outFile).toFile();
+				File modFile = sourceDir.toPath().resolve(outFile).toFile();
 				if (!modFile.exists()) {
 					LOGGER.error("build didn't produce expected mod file " + outFile);
 					continue;

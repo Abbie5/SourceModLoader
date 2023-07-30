@@ -1,4 +1,4 @@
-package cc.abbie.sourcemodloader.source;
+package cc.abbie.sourcemodloader.source.buildsystems;
 
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
