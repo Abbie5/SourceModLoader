@@ -32,12 +32,10 @@ public final class ArchiveModSource extends ModSource {
 		// download archive to global cache
 		Path cacheDir = QuiltLoader.getCacheDir();
 
-		URL urlUrl = new URL(url);
-
-		File dlFile = cacheDir.resolve("sourcemodloader").resolve("download_cache").resolve(name).resolve(urlUrl.getPath()).toFile();
+		File dlFile = cacheDir.resolve("sourcemodloader").resolve("download_cache").resolve(name).resolve(url.getPath()).toFile();
 
 		if (!dlFile.exists()) {
-			ReadableByteChannel rbc = Channels.newChannel(urlUrl.openStream());
+			ReadableByteChannel rbc = Channels.newChannel(url.openStream());
 			FileOutputStream fos = new FileOutputStream(dlFile);
 			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
 		}

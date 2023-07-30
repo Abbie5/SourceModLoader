@@ -6,7 +6,6 @@ import org.eclipse.jgit.transport.URIish;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 
 public final class GitModSource extends ModSource {
     public String ref;
@@ -18,12 +17,12 @@ public final class GitModSource extends ModSource {
 
 			if (!repoDir.exists()) {
 				Git.cloneRepository()
-					.setURI(url)
+					.setURI(url.toString())
 					.setBranch(ref)
 					.setDirectory(repoDir)
 					.call();
 			}
-		} catch (GitAPIException | URISyntaxException e) {
+		} catch (GitAPIException e) {
 			throw new IOException(e);
 		}
 	}
