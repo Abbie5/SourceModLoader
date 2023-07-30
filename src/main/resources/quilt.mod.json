@@ -15,8 +15,7 @@
 				"homepage": "https://github.com/Abbie5/SourceModLoader",
 				"issues": "https://github.com/Abbie5/SourceModLoader/issues",
 				"sources": "https://github.com/Abbie5/SourceModLoader"
-			},
-			"icon": "pack.png"
+			}
 		},
 		"intermediate_mappings": "net.fabricmc:intermediary",
 		"entrypoints": {
