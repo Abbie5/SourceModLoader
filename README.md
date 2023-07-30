@@ -2,6 +2,8 @@
 
 Download and install mods from source!
 
+_Requires loader plugins to be enabled._
+
 ---
 
 #### Example `config/sourcemodloader/mods.json`:
