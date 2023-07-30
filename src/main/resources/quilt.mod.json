@@ -30,7 +30,11 @@
 	"experimental_quilt_loader_plugin": {
 		"class": "cc.abbie.sourcemodloader.plugin.SMLPlugin",
 		"packages": [
-			"cc.abbie.sourcemodloader.plugin"
+			"cc.abbie.sourcemodloader.plugin",
+			"cc.abbie.sourcemodloader.config",
+			"cc.abbie.sourcemodloader.source",
+			"cc.abbie.sourcemodloader.source.buildsystems",
+			"cc.abbie.sourcemodloader.source.sources"
 		]
 	}
 }
